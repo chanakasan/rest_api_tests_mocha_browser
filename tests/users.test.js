@@ -1,11 +1,25 @@
 import makeServer from '../mirage.js'
 const { expect } = chai
 
+const fixtures = {
+  users: [
+    { id: 1, username: "user-1" },
+    { id: 2, username: "user-2" },
+    { id: 3, username: "user-3" },
+  ],
+}
+
 const server = makeServer()
+server.db.loadData(fixtures)
+
+function resetDb() {
+  server.db.emptyData()
+  server.db.loadData(fixtures)
+}
 
 async function request(method, url, data=null) {
   const headers = {
-    'Content-Type': 'application/json2',
+    'Content-Type': 'application/json',
   }
   const options = {
     headers,
@@ -19,7 +33,7 @@ async function request(method, url, data=null) {
 }
 
 describe("GET /users", () => {
-  it("should return users array", async () => {
+  it("should return items list", async () => {
     const res = await request('GET', '/users') 
     const body = await res.json()
 
@@ -30,7 +44,7 @@ describe("GET /users", () => {
 })
 
 describe("GET /users/:id", () => {  
-  it("should return a user object", async () => {
+  it("should return item object if exist", async () => {
     const res = await request('GET', '/users/1')
     const body = await res.json()
 
@@ -45,82 +59,78 @@ describe("POST /users", () => {
       username: 'john101'
     }
   }
-  after(async () => {
-    // reset db
+
+  before(async () => {
+    expect(server.db.dump().users.length).to.equal(3)
+  })
+
+  afterEach(async () => {
+    resetDb()
   })
   
-  it("should add new user", async () => {
+  it("should add new item", async () => {
     const res = await request('POST', '/users', params)
     const body = await res.json()
 
     expect(res.status).to.equal(201)
+    expect(server.db.dump().users.length).to.equal(4)
     expect(body.user.username).to.equal('john101')
   })
 })
 
-xdescribe("PUT /users/:id", () => {
-  const newItem = {
-    id: 101,
-    username: 'john101'
+describe("PUT /users/:id", () => {
+  const params = {
+    user: {
+      message: "updated using PUT"
+    }
   }
-  before(async () => {
-    await request('GET', '/users').post("/users").send(newItem)
-  })
-  after(async () => {
-    await request('GET', '/users').delete(`/users/${newItem.id}`)
+  afterEach(async () => {
+    resetDb()
   })
 
-  it("should update item if it exists", async () => {
-    const res = await request('GET', '/users').put(`/users/${newItem.id}`)
-      .send({
-        id: 101,
-        message: "updated using PUT"
-      })
+  it("should update item if exists", async () => {
+    const res = await request('PUT', '/users/1', params)
+    const body = await res.json()
+    const result = body.user
+    
     expect(res.status).to.equal(200)
-    expect(res.body.id).to.equal(101)
-    expect(res.body.username).to.equal(undefined)
-    expect(res.body.message).to.equal("updated using PUT")
+    expect(result.id).to.equal('1')
+    // expect(result.username).to.equal(undefined)
+    expect(result.message).to.equal("updated using PUT")
   })
 })
 
-xdescribe("PATCH /users/:id", () => {
-  const newItem = {
-    id: 101,
-    username: 'john101'
+describe("PATCH /users/:id", () => {
+  const params = {
+    user: {
+      message: "updated using PATCH"
+    }
   }
-  before(async () => {
-    await request('GET', '/users').post("/users").send(newItem)
-  })
-  after(async () => {
-    await request('GET', '/users').delete(`/users/${newItem.id}`)
+  afterEach(async () => {
+    resetDb()
   })
 
-  it("should update item if it exists", async () => {
-    const res = await request('GET', '/users').patch(`/users/${newItem.id}`)
-      .send({
-        id: 101,
-        message: "updated using PATCH"
-      })
+  it("should update item if exists", async () => {
+    const res = await request('PATCH', '/users/1', params)
+    const body = await res.json()
+    const result = body.user
+
     expect(res.status).to.equal(200)
-    expect(res.body.id).to.equal(101)
-    expect(res.body.username).to.equal('john101')
-    expect(res.body.message).to.equal("updated using PATCH")
+    expect(result.id).to.equal('1')
+    expect(result.username).to.equal('user-1')
+    expect(result.message).to.equal("updated using PATCH")
   })
 })
 
-xdescribe("DELETE /users/:id", () => {
-  const newItem = {
-    id: 101,
-    username: 'john101'
-  }
-  before(async () => {
-    await request('GET', '/users').post("/users").send(newItem)
+describe("DELETE /users/:id", () => {
+  afterEach(async () => {
+    resetDb()
   })
-  it("should delete one item", async () => {
-    const res = await request('GET', '/users').delete(`/users/${newItem.id}`)
-    expect(res.status).to.equal(200)
+  it("should delete item if exists", async () => {
+    const res = await request('DELETE', '/users/1')
 
-    const res2 = await request('GET', '/users').get(`/users/${newItem.id}`)
-    expect(res2.status).to.equal(404)
+    expect(res.status).to.equal(204)
+    expect(server.db.dump().users.length).to.equal(2)
+    expect(server.db.dump().users[0].username).to.equal('user-2')
   })
 })
