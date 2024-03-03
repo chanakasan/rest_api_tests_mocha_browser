@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mocha Tests</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/mocha/mocha.css" />
+  </head>
+  <body>
+    <div id="mocha"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "chai": "https://cdn.jsdelivr.net/npm/chai@5.1.0/+esm",
+          "miragejs": "https://cdn.jsdelivr.net/npm/miragejs@0.1.48/+esm",
+          "@tests/": "../tests/",
+          "@app/": "../app/"
+        }
+      }
+    </script>
+    <script type="module" src="mocha_setup.js"></script>
+    <script type="module" src="mocha_run.js"></script>
+  </body>
+</html>
